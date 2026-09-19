@@ -163,3 +163,32 @@ async def test_skip_next_meal_resume_restores_master_schedule(
         coordinator._write_raw_hardware_schedule_sync, "0800027f121e037f"
     )
     coordinator.async_request_refresh.assert_awaited_once()
+
+
+# This test documents a bug: skip switch writes meal entries without commas.
+@pytest.mark.asyncio
+async def test_skip_next_meal_writes_comma_less_payload(mock_hass, make_coordinator):
+    coordinator = make_coordinator()
+    coordinator._stored_data = {"master_schedule_raw": "[1,03000101,15000101,23000101]"}
+
+    status = MagicMock(spec=FeederStatus)
+    meals = [
+        ScheduleMeal(time="03:00", portions=1, repeat=1, raw="03000101"),
+        ScheduleMeal(time="15:00", portions=1, repeat=1, raw="15000101"),
+        ScheduleMeal(time="23:00", portions=1, repeat=1, raw="23000101"),
+    ]
+    coordinator.data = FeederCoordinatorData(
+        status=status,
+        schedule=SchedulePlan(
+            enabled=True,
+            meals=meals,
+            raw_string="[1,03000101,15000101,23000101]",
+        ),
+        next_feed_time=datetime(2026, 8, 16, 15, 0, tzinfo=timezone.utc),
+    )
+
+    await coordinator.async_set_skip_next_meal(True)
+
+    expected = "0300010123000101"
+    payload = mock_hass.async_add_executor_job.await_args.args[1]
+    assert payload == expected
