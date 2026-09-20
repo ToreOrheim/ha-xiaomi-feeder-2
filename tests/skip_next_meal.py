@@ -95,8 +95,8 @@ async def test_skip_next_meal_switch_turn_off(mock_coordinator, mock_entry):
 
 
 @pytest.mark.asyncio
-async def test_skip_next_meal_masks_next_meal(mock_hass, make_coordinator):
-    """Test skipping the next meal masks it in the EEPROM payload."""
+async def test_skip_next_meal_disables_next_meal(mock_hass, make_coordinator):
+    """Test skipping the next meal disables it in the EEPROM payload."""
     coordinator = make_coordinator()
     coordinator._stored_data = {"master_schedule_raw": "0800027f121e037f"}
 
@@ -117,7 +117,7 @@ async def test_skip_next_meal_masks_next_meal(mock_hass, make_coordinator):
     assert coordinator._skip_next_meal is True
     assert coordinator._skipped_meal_time == next_feed_time
     mock_hass.async_add_executor_job.assert_awaited_once_with(
-        coordinator._write_raw_hardware_schedule_sync, "121e037f"
+        coordinator._write_raw_hardware_schedule_sync, "08000200,121e037f"
     )
     coordinator.async_request_refresh.assert_awaited_once()
 
